@@ -1,0 +1,1 @@
+Efficient Emotion Recognition from Speech Using Deep Learning on Spectrograms 논문을 CREMA-D 버전으로 구현하였습니다.
