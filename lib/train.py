@@ -1,6 +1,5 @@
 from .utils import get_accuracy
 from torch import nn, optim
-from model import CNN_LSTM
 
 from .abstact_dataset import DataType
 from tqdm import tqdm
@@ -12,7 +11,7 @@ class Trainer():
     def __init__(self, dataloader, model):
         self.dataloader = dataloader
         self.model = model.cuda()
-        self.optimizer = optim.Adam(self.model.parameters(), lr=1e-4)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=1e-3)
         self.criterion = nn.CrossEntropyLoss()
 
     def train(self):
@@ -24,26 +23,39 @@ class Trainer():
             self.start_accuracy_calc()
             loss_sum = 0
 
-            for i, (feed, label, filename) in tqdm(enumerate(dataloader), total=len(dataloader)):
+            for i, (feed, label) in tqdm(enumerate(dataloader), total=len(dataloader)):
                 feed = feed.cuda()  
                 label = label.cuda()
 
+                self.optimizer.zero_grad()
                 outputs = self.model(feed)
                 loss = self.criterion(outputs, label)
                 
-                self.optimizer.zero_grad()
                 loss.backward()
                 self.optimizer.step()
                 
-                loss_sum += loss.data
+                loss_sum += loss.item()
 
                 self.add_accuracy_data(outputs, label)
             self.print_accuracy_data()
             print(f'Loss: {loss_sum/(i+1)}')
-            
-            if epoch%100 == 0:
-                self.test()
-                self.model.train(True)
+   
+            # validation part
+            correct = 0
+            total = 0
+            val_dataloader = self.dataloader[DataType.VALIDATION]
+            for i, data in enumerate(val_dataloader, 0):
+                inputs, labels = data
+                inputs, labels = inputs.cuda(), labels.cuda()
+                outputs = self.model(inputs)
+                
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+                
+            print('[%d epoch] Accuracy of the network on the validation images: %d %%' % 
+                (epoch + 1, 100 * correct / total)
+                )
 
     def start_accuracy_calc(self):
         self.acc_sum = [0 for i in range(len(LABEL))]
@@ -72,7 +84,7 @@ class Trainer():
         with torch.no_grad():
             print('\nTest Start!')
             self.start_accuracy_calc()
-            for (tester, label, filename) in dataloader:
+            for (tester, label) in dataloader:
                 tester = tester.cuda()
                 label = label.cuda()
                 outputs = self.model(tester)
