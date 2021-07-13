@@ -13,6 +13,7 @@ from tqdm import tqdm
 class CremaDataset(ICremaDataset):
     def __init__(self):
         super(CremaDataset,self).__init__(LABEL,BATCH_SIZE)
+        self.max_width = 0
         self.pre_processing()
         self.load_data()
 
@@ -20,11 +21,14 @@ class CremaDataset(ICremaDataset):
         new_data = []
         for (wave, label, filename, sample_rate) in tqdm(self.dataset):
             #(freq,time)
-            spectrogram = ta.transforms.MelSpectrogram(sample_rate)(wave.view(1, -1))
-            new_data.append((spectrogram,label,filename))
+            spectrogram = ta.transforms.MelSpectrogram(sample_rate)(wave.view(1, -1))[0]
+            self.max_width = max(self.max_width,len(spectrogram[0]))
+            new_data.append([spectrogram,label,filename])
 
-        for (spectrogram, label, filename) in self.dataset:
-            self.__padding(spectrogram)
+        for i in range(len(new_data)):
+            spectrogram = new_data[i][0]
+            spectrogram = self._padding(spectrogram)
+            new_data[i] = (spectrogram,new_data[i][1],new_data[i][2])
         self.dataset = new_data
 
 
@@ -56,26 +60,7 @@ class CremaDataset(ICremaDataset):
         return train_data, val_data, test_data
 
 
-    def __padding(self):
-        for iter in self.data:
-            datum, _, _ = iter
-            width = len(datum[0][0])
-            iter[0] = nn.ZeroPad2d((0,self.max_width - width,0,0,0,0))(datum)
-
-class DataManager():
-    def __init__(self):
-        self.data = {}
-    def add_data(self,name,dataset,shuffle=True,num_workers=0):
-        val_size = int(0.1*len(dataset))
-        train_size = len(dataset) - val_size
-
-        train_data, test_data = random_split(dataset, [train_size, val_size])
-
-        train_loader = DataLoader(train_data, batch_size = BATCH_SIZE, shuffle=shuffle, num_workers=num_workers)
-        test_loader = DataLoader(test_data)
-        self.data[name] = {}
-        self.data[name][DataType.TRAIN] = train_loader
-        self.data[name][DataType.TEST] = test_loader
-    def __getitem__(self, key):
-        name, type = key
-        return self.data[name][type]
+    def _padding(self,spectrogram):
+        width = len(spectrogram[0])
+        spectrogram = nn.ZeroPad2d((0,self.max_width - width,0,0))(spectrogram)
+        return spectrogram.unsqueeze(0)

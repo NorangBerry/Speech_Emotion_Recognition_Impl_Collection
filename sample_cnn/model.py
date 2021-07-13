@@ -21,7 +21,7 @@ class SimpleCNN(nn.Module):
         )
         
         # First fully connected layer
-        self.fc1 = nn.Linear(327680, 6)
+        self.fc1 = nn.Linear(256000, 6)
 
     def forward(self,input):
         layer1 = th.cat((self.conv1a(input),self.conv1b(input)),1)
