@@ -1,7 +1,7 @@
 import numpy as np
 from torch.functional import Tensor
 from torch.utils.data.dataset import random_split
-from lib.utils import do_mfcc
+import lib.utils as utils
 from tqdm.std import tqdm
 from torch.utils.data import DataLoader
 from lib.abstact_dataset import ICremaDataset,DataType
@@ -21,7 +21,7 @@ class CremaDataset(ICremaDataset):
         for (wave, label, sample_rate) in tqdm(self.dataset):
             #(freq,time)
             # spectrogram = self._stft(wave,sample_rate, window_ms=100, window_type='HAMMING', hop_ms=40)
-            mfcc = do_mfcc(wave,sample_rate)
+            mfcc = utils.mfcc(wave,sample_rate)
             max_size = max(max_size,mfcc.shape[0])
             new_data.append((mfcc,label))
         
@@ -34,11 +34,6 @@ class CremaDataset(ICremaDataset):
         self.dataset = final_data
     
     def load_data(self):
-        # test_size = round(0.1*len(self.dataset))
-        # train_data, test_data = random_split(self.dataset, [len(self.dataset) - test_size, test_size])
-
-        # val_size = round(0.2*len(train_data))
-        # train_data, val_data = random_split(train_data, [len(train_data) - val_size, val_size])
         data, label = self.split_data_label(self.dataset)
         train_data, test_data, train_label, test_label = train_test_split(data, label, test_size=0.1)
         train_data, val_data, train_label, val_label = train_test_split(train_data, train_label, test_size=0.2)

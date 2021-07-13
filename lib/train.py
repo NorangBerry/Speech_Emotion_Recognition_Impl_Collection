@@ -1,6 +1,3 @@
-from .utils import get_accuracy
-from torch import nn, optim
-
 from .abstact_dataset import DataType
 from tqdm import tqdm
 import torch
@@ -10,10 +7,14 @@ class Trainer():
     def __init__(self, dataloader, model, max_epoch, labels):
         self.dataloader = dataloader
         self.model = model.cuda()
-        self.optimizer = optim.Adam(self.model.parameters(), lr=1e-3)
-        self.criterion = nn.CrossEntropyLoss()
         self.max_epoch = max_epoch
         self.labels = labels
+        
+    def set_optimizer(self, optimizer):
+        self.optimizer = optimizer
+
+    def set_loss_function(self, criterion):
+        self.criterion = criterion
 
     def train(self):
         dataloader = self.dataloader[DataType.TRAIN]
@@ -59,8 +60,8 @@ class Trainer():
                 )
 
     def start_accuracy_calc(self):
-        self.acc_sum = [0 for i in range(len(self.labels))]
-        self.acc_len = [0 for i in range(len(self.labels))]
+        self.acc_sum = [0] * len(self.labels)
+        self.acc_len = [0] * len(self.labels)
 
     def add_accuracy_data(self, result, labels):
         _, predictions = torch.max(result, dim=1)
@@ -93,6 +94,4 @@ class Trainer():
             self.print_accuracy_data()
 
 if __name__ == '__main__':
-    trainer = Trainer()
-    trainer.train()
-    trainer.test()
+    pass

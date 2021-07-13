@@ -1,10 +1,11 @@
+from abc import abstractmethod
 from enum import Enum
 from lib.utils import change_sample_rate
 import os
-from .const import BASE_PATH, LABEL
+from .const import BASE_PATH
 from tqdm import tqdm
 from torch import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 import re
 import torchaudio as ta
 from torch import nn
@@ -14,14 +15,42 @@ class DataType(Enum):
     TEST = 2
     VALIDATION = 3
 
-#Data 불러오기
-class ICremaDataset(Dataset):
-    def __init__(self,labels,sample_rate=None):
-        super(ICremaDataset,self).__init__()
-        self.labels = labels
+class WrapDataset(Dataset):
+    def __init__(self,labels,batch_size,sample_rate=None):
         self.sample_rate = sample_rate
+        self.labels = labels
         self.dataset = []
         self.dataloader = {}
+        self.batch_size = batch_size
+
+    @abstractmethod
+    def __load_file(self):
+        pass
+    @abstractmethod
+    def pre_processing(self):
+        pass
+
+    @abstractmethod
+    def split_dataset(self):
+        pass
+
+    def load_data(self):
+        train_data, val_data, test_data = self.split_dataset()
+        self.dataloader = {
+            DataType.TRAIN : DataLoader(train_data, batch_size = self.batch_size, shuffle=True),
+            DataType.TEST : DataLoader(test_data),
+            DataType.VALIDATION : DataLoader(val_data)
+        }
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self,key):
+        return self.dataloader[key]
+
+#Data 불러오기
+class ICremaDataset(WrapDataset):
+    def __init__(self,labels,batch_size,sample_rate=None):
+        super(ICremaDataset,self).__init__(labels,batch_size,sample_rate)
         self.__load_file()
 
     def __load_file(self):
@@ -39,37 +68,17 @@ class ICremaDataset(Dataset):
             data, sample_rate = ta.load(file_path)
             if self.sample_rate and self.sample_rate != sample_rate:
                 data, sample_rate = change_sample_rate(data,sample_rate,self.sample_rate)
-            self.dataset.append((data, label, sample_rate))
+            self.dataset.append((data, label,filename, sample_rate))
 
-    def pre_processing(self):
-        pass
-
-    def load_data(self):
-        pass
-    
-    def __get_window(self, window_type, window_size):
-        if window_type == 'HAMMING':
-            return torch.hamming_window(window_size)
-        else:
-            return None
-    
     def _padding(self,spectrogram, time = 0):
-        width = len(spectrogram)
-        spectrogram = nn.ZeroPad2d((0,0,0,0,time - width,0))(spectrogram)
-        return spectrogram
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def __getitem__(self,key):
-        return self.dataloader[key]
+        width = len(spectrogram[0])
+        spectrogram = nn.ZeroPad2d((0,time - width,0,0))(spectrogram)
+        return spectrogram.unsqueeze(0)
 
 #Data 불러오기
-class IIEMOCAP(Dataset):
-    def __init__(self):
-        super(IIEMOCAP,self).__init__()
-        self.dataset = []
-        self.dataloader = {}
+class IIEMOCAP(WrapDataset):
+    def __init__(self, labels, batch_size):
+        super(IIEMOCAP,self).__init__(labels,batch_size)
         self.__load_file()
 
     def __load_file(self):
@@ -112,35 +121,8 @@ class IIEMOCAP(Dataset):
         start_time, end_time =  time[1:-1].split(' - ')
         label = label.upper()
         return start_time, end_time, file_name, label
-
-    def pre_processing(self):
-        pass
-
-    def feed_data(self):
-        pass
-    
-    def _stft(self, data, sample_rate, window_ms, window_type=None, hop_ms=None):
-        window_size = (sample_rate * window_ms)//100
-        hop_length = (sample_rate * hop_ms)//1000
-        window = self.__get_window(window_type, window_size) 
-        stft = torch.stft(data, n_fft=window_size, hop_length=hop_length, window=window)
-        #(frequency, time)
-        stft = stft.permute(0,3,1,2)[0][0]
-        return stft
-
-    def __get_window(self, window_type, window_size):
-        if window_type == 'HAMMING':
-            return torch.hamming_window(window_size)
-        else:
-            return None
     
     def _padding(self,spectrogram, time = 0, freq = 0):
         width = len(spectrogram[0])
         spectrogram = nn.ZeroPad2d((0,time - width,0,freq))(spectrogram)
         return spectrogram.unsqueeze(0)
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def __getitem__(self,key):
-        return self.dataloader[key]

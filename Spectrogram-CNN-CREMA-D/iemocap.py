@@ -1,46 +1,79 @@
+import torch
 from torch.utils.data.dataset import random_split
 from setting import BATCH_SIZE
 from lib.abstact_dataset import IIEMOCAP, DataType
 from torch.utils.data import DataLoader
 from setting import LABEL
 from tqdm import tqdm
+import lib.utils as utils
 
 class IEMOCAP(IIEMOCAP):
     def __init__(self):
-        super(IEMOCAP,self).__init__()
+        super(IEMOCAP,self).__init__(LABEL,BATCH_SIZE)
         self.pre_processing()
-        self.feed_data()
+        self.load_data()
 
     def pre_processing(self):
         new_data = []
         print("\nPre_processiong")
-        self.check_label_num()
+        # self.check_label_num()
         for (wave, label, filename, sample_rate) in tqdm(self.dataset):
-            #(freq,time)
-            spectrogram = self._stft(wave,sample_rate, window_ms=100, window_type='HAMMING', hop_ms=40)
-            spectrogram = spectrogram[:200,:]
-            spectrogram = self._padding(spectrogram, time = 300)
-            new_data.append((spectrogram,label,filename))
+            waves = self.split_wave(wave,sample_rate,time = 3000)
+
+            for partial_wave in waves:
+                #(freq,time)
+                window_ms = 100
+                spectrogram = utils.stft(partial_wave,sample_rate, window_ms=window_ms, window_type='HAMMING', hop_ms=40, onesided=False)
+                spectrogram = self.split_spectrogram(spectrogram, sample_rate, window_ms, frequency=4000)[0]
+                spectrogram = self._padding(spectrogram, time = 300)
+                new_data.append((spectrogram,label,filename))
+
         self.dataset = new_data
 
+    def split_wave(self,wave,sample_rate,time):
+        wave_len = wave.shape[1]
+        limit_len = sample_rate * time
+
+        waves = []
+        if wave_len > limit_len:
+            part_num = (wave_len//limit_len)+1
+            wave_part_len = wave_len//part_num
+            parts = torch.split(wave,wave_part_len,1)
+            waves = [part for part in parts]
+            if waves[-1].shape[1] <= part_num:
+                waves[-2] = torch.cat((waves[-2], waves[-1]), dim=1)
+                waves.pop()
+        else:
+            waves = [wave]
+        return waves
+
+    def split_spectrogram(self,spectrogram, sample_rate, window_ms, frequency = 4000):
+        freq_resolution = (sample_rate*window_ms)//1000
+        freq_unit = sample_rate//freq_resolution
+        freq_len = frequency//freq_unit
+        return [spectrogram[:freq_len,:], spectrogram[freq_len:,:]]
+
     def check_label_num(self):
-        ret = [0 for i in range(len(LABEL))]
+        ret = [0] * len(LABEL)
         for (wave, label, filename, sample_rate) in tqdm(self.dataset):
             ret[label] += 1
         for key in LABEL:
             print(key,ret[LABEL[key]])
 
-
-    def feed_data(self):
-        train_len = int(len(self.dataset)*0.9)
-        train_data, test_data = random_split(self.dataset,[train_len, len(self.dataset)-train_len])
-
-        train_loader = DataLoader(train_data, batch_size = BATCH_SIZE, shuffle=True)
-        test_loader = DataLoader(test_data, batch_size = BATCH_SIZE)
-        
-        self.dataloader[DataType.TRAIN] = train_loader
-        self.dataloader[DataType.TEST] = test_loader
-        return train_data, test_data
+    def split_dataset(self):
+        train_data = []
+        val_data = []
+        test_data = []
+        for (spectrogram,label,filename) in self.dataset:
+            session_num = int(filename[4])
+            if session_num < 5:
+                train_data.append((spectrogram,label))
+            else:
+                if filename[5] == 'F':
+                    val_data.append((spectrogram,label))
+                else:
+                    test_data.append((spectrogram,label))
+        return train_data, val_data, test_data
 
     def get_test_speaker(self,speakers):
         test_size = int(0.1*len(speakers))
