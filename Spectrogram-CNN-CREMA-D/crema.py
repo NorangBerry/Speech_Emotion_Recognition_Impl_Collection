@@ -1,4 +1,4 @@
-from const import BATCH_SIZE
+from setting import BATCH_SIZE
 from torch.utils.data import DataLoader
 from abstact_dataset import ICremaDataset,DataType
 
@@ -7,7 +7,7 @@ class CremaDataset(ICremaDataset):
     def __init__(self):
         super(CremaDataset,self).__init__()
         self.pre_processing()
-        self.feed_data()
+        self.load_data()
 
 
     def pre_processing(self):
@@ -20,7 +20,7 @@ class CremaDataset(ICremaDataset):
             new_data.append((spectrogram,label,filename))
         self.dataset = new_data
     
-    def feed_data(self):
+    def load_data(self):
         speakers = []
 
         for (spectrogram, label, filename) in self.dataset:

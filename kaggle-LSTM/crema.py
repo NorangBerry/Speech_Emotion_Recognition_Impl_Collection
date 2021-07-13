@@ -5,7 +5,7 @@ from lib.utils import do_mfcc
 from tqdm.std import tqdm
 from torch.utils.data import DataLoader
 from lib.abstact_dataset import ICremaDataset,DataType
-from lib.const import BATCH_SIZE
+from setting import BATCH_SIZE
 from sklearn.model_selection import train_test_split
 
 

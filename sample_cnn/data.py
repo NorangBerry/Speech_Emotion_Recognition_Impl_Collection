@@ -1,6 +1,6 @@
 from torch.utils.data.dataset import random_split
 from sample_cnn import SimpleCNN
-from const import LABEL, BASE_PATH, BATCH_SIZE
+from setting import LABEL, BASE_PATH, BATCH_SIZE
 import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio as ta

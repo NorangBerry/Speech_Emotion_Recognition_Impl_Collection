@@ -16,8 +16,9 @@ class DataType(Enum):
 
 #Data 불러오기
 class ICremaDataset(Dataset):
-    def __init__(self,sample_rate=None):
+    def __init__(self,labels,sample_rate=None):
         super(ICremaDataset,self).__init__()
+        self.labels = labels
         self.sample_rate = sample_rate
         self.dataset = []
         self.dataloader = {}
@@ -30,9 +31,9 @@ class ICremaDataset(Dataset):
             if ext != '.wav':
                 continue
             key = filename.split('_')[-2]
-            if key not in LABEL.keys():
+            if key not in self.labels.keys():
                 continue
-            label = LABEL[key]
+            label = self.labels[key]
 
             file_path = os.path.join(directory, filename)
             data, sample_rate = ta.load(file_path)
@@ -95,8 +96,8 @@ class IIEMOCAP(Dataset):
             if not self.__is_label_txt(line):
                 continue
             start_time, end_time, file_name, label = self.__parse_label_txt(line)
-            if label in LABEL:
-                labels.append((file_name, LABEL[label]))
+            if label in self.labels:
+                labels.append((file_name, self.labels[label]))
         return labels
 
     def __is_label_txt(self,line):

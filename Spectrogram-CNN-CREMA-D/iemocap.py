@@ -1,8 +1,8 @@
 from torch.utils.data.dataset import random_split
-from lib.const import BATCH_SIZE
+from setting import BATCH_SIZE
 from lib.abstact_dataset import IIEMOCAP, DataType
 from torch.utils.data import DataLoader
-from lib.const import LABEL
+from setting import LABEL
 from tqdm import tqdm
 
 class IEMOCAP(IIEMOCAP):

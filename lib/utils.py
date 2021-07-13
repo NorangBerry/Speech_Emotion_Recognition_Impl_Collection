@@ -1,5 +1,4 @@
 import torchaudio
-from lib.const import LABEL
 import torch
 import matplotlib.pyplot  as plt
 import librosa.display
@@ -35,13 +34,13 @@ def show_waveplot(data,emotion,sample_rate):
     librosa.display.waveplot(np.array(data), sr=sample_rate)
     plt.show(block=False)
 
-def show_emotion_distribution(label_data):
-    labels = [0 for i in range(len(LABEL))]
+def show_emotion_distribution(label_data,labels):
+    labels = [0 for i in range(len(labels))]
     for label in label_data:
         labels[label] += 1
     plt.title('Count of Emotions', size=16)
     x = np.arange(len(labels))
-    plt.xticks(x,LABEL.keys())
+    plt.xticks(x,labels.keys())
     plt.bar(x,labels)
     plt.ylabel('Count', size=12)
     plt.xlabel('Emotions', size=12)

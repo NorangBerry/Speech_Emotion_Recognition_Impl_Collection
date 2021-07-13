@@ -5,19 +5,20 @@ from .abstact_dataset import DataType
 from tqdm import tqdm
 import torch
 import numpy as np
-from .const import MAX_EPOCH, LABEL
 
 class Trainer():
-    def __init__(self, dataloader, model):
+    def __init__(self, dataloader, model, max_epoch, labels):
         self.dataloader = dataloader
         self.model = model.cuda()
         self.optimizer = optim.Adam(self.model.parameters(), lr=1e-3)
         self.criterion = nn.CrossEntropyLoss()
+        self.max_epoch = max_epoch
+        self.labels = labels
 
     def train(self):
         dataloader = self.dataloader[DataType.TRAIN]
         self.model.train(True)
-        for epoch in range(MAX_EPOCH):
+        for epoch in range(self.max_epoch):
             print(f'\n{epoch+1} Train proceeding')
 
             self.start_accuracy_calc()
@@ -58,8 +59,8 @@ class Trainer():
                 )
 
     def start_accuracy_calc(self):
-        self.acc_sum = [0 for i in range(len(LABEL))]
-        self.acc_len = [0 for i in range(len(LABEL))]
+        self.acc_sum = [0 for i in range(len(self.labels))]
+        self.acc_len = [0 for i in range(len(self.labels))]
 
     def add_accuracy_data(self, result, labels):
         _, predictions = torch.max(result, dim=1)
@@ -71,10 +72,10 @@ class Trainer():
 
     def print_accuracy_data(self):
         print(f'Weight Accuracy: {np.sum(self.acc_sum)/np.sum(self.acc_len)}')
-        unweight_accuracy_sum = np.sum([self.acc_sum[i]/self.acc_len[i] for i in range(len(LABEL))])
-        print(f'Unweight Accuracy: {unweight_accuracy_sum/len(LABEL)}')
+        unweight_accuracy_sum = np.sum([self.acc_sum[i]/self.acc_len[i] for i in range(len(self.labels))])
+        print(f'Unweight Accuracy: {unweight_accuracy_sum/len(self.labels)}')
         class_accuracy = ''
-        for key, i in LABEL.items():
+        for key, i in self.labels.items():
             class_accuracy += f'[{key}]: {self.acc_sum[i]/self.acc_len[i]} '
         print(class_accuracy)
 

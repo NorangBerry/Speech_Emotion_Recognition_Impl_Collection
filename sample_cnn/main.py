@@ -4,7 +4,7 @@ from sample_cnn import SimpleCNN
 from data import CremaDataset, DataManager, DataType
 from tqdm import tqdm
 import torch
-from const import BATCH_SIZE, MAX_EPOCH
+from setting import BATCH_SIZE, MAX_EPOCH
 import torch.nn.functional as F
 
 CREMA = 'CREMA'
