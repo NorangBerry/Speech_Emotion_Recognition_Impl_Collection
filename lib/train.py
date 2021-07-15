@@ -23,7 +23,6 @@ class Trainer():
             print(f'FOLD {fold+1}')
             print('--------------------------------')
             self.model.apply(self.reset_weights)
-            self.model.initialize_weights()
             self.train()
             save_path = f'./model-fold-{fold}.pth'
             torch.save(self.model.state_dict(), save_path)
@@ -34,12 +33,12 @@ class Trainer():
         results = np.mean(np.array(results), axis=0)
         print(f"Total Weighted Accuracy: {results[0]}")
         print(f"Total UnWeighted Accuracy: {results[1]}")
+
     def reset_weights(self, m):
         for layer in m.children():
             if hasattr(layer, 'reset_parameters'):
                 print(f'Reset trainable parameters of layer = {layer}')
                 layer.reset_parameters()
-
 
     def train(self):
         loss = 1e+10

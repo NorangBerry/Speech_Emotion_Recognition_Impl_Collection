@@ -8,15 +8,6 @@ class CNN_LSTM(nn.Module):
         super(CNN_LSTM,self).__init__()
         self._build()
 
-    def initialize_weights(self,layer=None):
-        layers = self.children()
-        if layer != None:
-            layers = layer.children()
-        for layer in layers:
-            if type(layer) in [nn.Sequential]:
-                self.initialize_weights(layer)
-            elif hasattr(layer, 'weight'):
-                nn.init.xavier_uniform(layer.weight)
     def _build(self):
         self.CNN = nn.Sequential(
             Conv2d(1, 16, (12,16), padding="same"),
