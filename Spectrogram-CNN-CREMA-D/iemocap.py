@@ -60,13 +60,13 @@ class IEMOCAP(IIEMOCAP):
         for key in LABEL:
             print(key,ret[LABEL[key]])
 
-    def split_dataset(self):
+    def split_dataset(self,step):
         train_data = []
         val_data = []
         test_data = []
         for (spectrogram,label,filename) in self.dataset:
             session_num = int(filename[4])
-            if session_num < 5:
+            if session_num != step:
                 train_data.append((spectrogram,label))
             else:
                 if filename[5] == 'F':
@@ -74,7 +74,11 @@ class IEMOCAP(IIEMOCAP):
                 else:
                     test_data.append((spectrogram,label))
         return train_data, val_data, test_data
-
-    def get_test_speaker(self,speakers):
-        test_size = int(0.1*len(speakers))
-        return speakers[test_size:test_size*2]
+    
+    def set_next_step(self,step):
+        train_data, val_data, test_data = self.split_dataset(step)
+        self.dataloader = {
+            DataType.TRAIN : DataLoader(train_data, batch_size = self.batch_size, shuffle=True),
+            DataType.TEST : DataLoader(test_data),
+            DataType.VALIDATION : DataLoader(val_data)
+        }
