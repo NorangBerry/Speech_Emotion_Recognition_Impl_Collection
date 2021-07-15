@@ -3,15 +3,14 @@ from torch.utils.data.dataset import random_split
 from setting import BATCH_SIZE
 from lib.abstact_dataset import IIEMOCAP, DataType
 from torch.utils.data import DataLoader
-from setting import LABEL
+from setting import LABEL, LABEL_MERGE
 from tqdm import tqdm
 import lib.utils as utils
 
 class IEMOCAP(IIEMOCAP):
     def __init__(self):
-        super(IEMOCAP,self).__init__(LABEL,BATCH_SIZE)
+        super(IEMOCAP,self).__init__({**LABEL, **LABEL_MERGE}, BATCH_SIZE)
         self.pre_processing()
-        self.load_data()
 
     def pre_processing(self):
         new_data = []
